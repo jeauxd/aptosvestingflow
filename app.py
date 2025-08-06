@@ -133,6 +133,9 @@ def process_stage_1(anchorage_df, wallets_df):
     """Stage 1: Vesting Outflows per Anchorage File"""
     try:
         st.write(f"Debug: Total rows in Anchorage file: {len(anchorage_df)}")
+        # Show first few Type values to see exact formatting
+st.write(f"Debug: First 10 Type values: {list(anchorage_df['Type'].head(10))}")
+st.write(f"Debug: Unique transaction types: {sorted(anchorage_df['Type'].unique())}")
         
         # Show unique transaction types
         unique_types = anchorage_df['Type'].unique()
