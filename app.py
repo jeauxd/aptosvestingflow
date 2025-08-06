@@ -129,16 +129,63 @@ def validate_bitwave_file(df):
     
     return True
 
-def create_download_link(df, filename, link_text="Download CSV"):
-    """Create a download link for a DataFrame"""
-    csv = df.to_csv(index=False)
-    csv_bytes = csv.encode('utf-8')
-    
-    return st.download_button(
-        label=link_text,
-        data=csv_bytes,
-        file_name=filename,
-        mime='text/csv'
+def process_stage_1(anchorage_df, wallets_df):
+    """Stage 1: Vesting Outflows per Anchorage File"""
+    try:
+        st.write(f"Debug: Total rows in Anchorage file: {len(anchorage_df)}")
+        
+        # Show unique transaction types
+        unique_types = anchorage_df['Type'].unique()
+        st.write(f"Debug: Unique transaction types found: {list(unique_types)}")
+        
+        # Filter for Balance Adjustment transactions
+        balance_adjustments = anchorage_df[anchorage_df['Type'] == 'Balance Adjustment'].copy()
+        st.write(f"Debug: Found {len(balance_adjustments)} Balance Adjustment transactions")
+        
+        if balance_adjustments.empty:
+            # Try case-insensitive match
+            balance_adjustments = anchorage_df[anchorage_df['Type'].str.lower() == 'balance adjustment'].copy()
+            st.write(f"Debug: Found {len(balance_adjustments)} balance adjustment transactions (case insensitive)")
+        
+        if balance_adjustments.empty:
+            st.warning("No Balance Adjustment transactions found in the data.")
+            return pd.DataFrame()
+        
+        # Parse dates
+        balance_adjustments['End Time'] = pd.to_datetime(balance_adjustments['End Time'])
+        balance_adjustments['Date'] = balance_adjustments['End Time'].dt.date
+        
+        # Group by date and destination address
+        grouped = balance_adjustments.groupby(['Date', 'Destination Address']).agg({
+            'Asset Quantity (Before Fee)': 'sum',
+            'Value (USD)': 'sum'
+        }).reset_index()
+        
+        st.write(f"Debug: After grouping, found {len(grouped)} unique date/address combinations")
+        
+        # Replace destination addresses with wallet names where possible
+        grouped['Wallet Name'] = grouped['Destination Address'].copy()
+        
+        # Create wallets lookup dictionary (Address -> Name)
+        if not wallets_df.empty and 'Addresses' in wallets_df.columns and 'Name' in wallets_df.columns:
+            wallets_lookup = dict(zip(wallets_df['Addresses'], wallets_df['Name']))
+            
+            # Replace addresses with wallet names
+            for addr, name in wallets_lookup.items():
+                if pd.notna(addr):
+                    grouped.loc[grouped['Destination Address'] == addr, 'Wallet Name'] = name
+        
+        # Reorder columns
+        result = grouped[['Date', 'Wallet Name', 'Asset Quantity (Before Fee)', 'Value (USD)']]
+        result = result.sort_values(['Date', 'Wallet Name'])
+        
+        st.write(f"Debug: Final result has {len(result)} rows")
+        
+        return result
+        
+    except Exception as e:
+        st.error(f"Error in Stage 1 processing: {str(e)}")
+        return pd.DataFrame()
     )
 
 # ============================================================================
