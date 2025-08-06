@@ -620,8 +620,8 @@ def main():
                         st.session_state['stage1_data'] = stage1_result
                         st.success("Stage 1 processing completed!")
         
-        # Display results
-        if not st.session_state['stage1_data'].empty:
+       # Display results - FIXED VERSION
+        if 'stage1_data' in st.session_state and not st.session_state['stage1_data'].empty:
             st.subheader("📋 Stage 1 Results")
             st.dataframe(st.session_state['stage1_data'], use_container_width=True)
             
@@ -631,6 +631,10 @@ def main():
                 f"stage1_vesting_outflows_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 "📥 Download Stage 1 CSV"
             )
+        
+        # Debug info - remove this later
+        if 'stage1_data' in st.session_state:
+            st.write(f"Debug: Stage 1 data has {len(st.session_state['stage1_data'])} rows")
     
     # Stage 2 Tab
     with tab2:
