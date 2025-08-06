@@ -136,11 +136,44 @@ def process_stage_1(anchorage_df, wallets_df):
         st.write(f"Debug: First 10 Type values: {list(anchorage_df['Type'].head(10))}")
         st.write(f"Debug: Unique transaction types: {sorted(anchorage_df['Type'].unique())}")
         
-        unique_types = anchorage_df['Type'].unique()
-        # ... rest of function
-        # Show first few Type values to see exact formatting
-st.write(f"Debug: First 10 Type values: {list(anchorage_df['Type'].head(10))}")
-st.write(f"Debug: Unique transaction types: {sorted(anchorage_df['Type'].unique())}")
+        balance_adjustments = anchorage_df[anchorage_df['Type'] == 'Balance Adjustment'].copy()
+        st.write(f"Debug: Found {len(balance_adjustments)} Balance Adjustment transactions")
+        
+        if balance_adjustments.empty:
+            balance_adjustments = anchorage_df[anchorage_df['Type'].str.lower() == 'balance adjustment'].copy()
+            st.write(f"Debug: Found {len(balance_adjustments)} balance adjustment transactions (case insensitive)")
+        
+        if balance_adjustments.empty:
+            st.warning("No Balance Adjustment transactions found in the data.")
+            return pd.DataFrame()
+        
+        balance_adjustments['End Time'] = pd.to_datetime(balance_adjustments['End Time'])
+        balance_adjustments['Date'] = balance_adjustments['End Time'].dt.date
+        
+        grouped = balance_adjustments.groupby(['Date', 'Destination Address']).agg({
+            'Asset Quantity (Before Fee)': 'sum',
+            'Value (USD)': 'sum'
+        }).reset_index()
+        
+        st.write(f"Debug: After grouping, found {len(grouped)} unique date/address combinations")
+        
+        grouped['Wallet Name'] = grouped['Destination Address'].copy()
+        
+        if not wallets_df.empty and 'Addresses' in wallets_df.columns and 'Name' in wallets_df.columns:
+            wallets_lookup = dict(zip(wallets_df['Addresses'], wallets_df['Name']))
+            for addr, name in wallets_lookup.items():
+                if pd.notna(addr):
+                    grouped.loc[grouped['Destination Address'] == addr, 'Wallet Name'] = name
+        
+        result = grouped[['Date', 'Wallet Name', 'Asset Quantity (Before Fee)', 'Value (USD)']]
+        result = result.sort_values(['Date', 'Wallet Name'])
+        
+        st.write(f"Debug: Final result has {len(result)} rows")
+        return result
+        
+    except Exception as e:
+        st.error(f"Error in Stage 1 processing: {str(e)}")
+        return pd.DataFrame()
         
         # Show unique transaction types
         unique_types = anchorage_df['Type'].unique()
