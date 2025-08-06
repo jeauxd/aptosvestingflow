@@ -186,7 +186,6 @@ def process_stage_1(anchorage_df, wallets_df):
     except Exception as e:
         st.error(f"Error in Stage 1 processing: {str(e)}")
         return pd.DataFrame()
-    )
 
 # ============================================================================
 # STAGE PROCESSING FUNCTIONS
