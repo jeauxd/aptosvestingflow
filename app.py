@@ -646,6 +646,13 @@ def main():
             st.warning("⚠️ No wallets list loaded")
         
         st.markdown("---")
+        
+        # Vesting Pairs Management
+        st.subheader("Vesting Wallet Pairs")
+        if not st.session_state['vesting_pairs'].empty:
+            st.success(f"✅ Loaded ({len(st.session_state['vesting_pairs'])} pairs)")
+        else:
+            st.warning("⚠️ No vesting pairs loaded")
     
     # Main content area with tabs
     tab1, tab2, tab3, tab4 = st.tabs([
