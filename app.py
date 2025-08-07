@@ -174,6 +174,10 @@ def process_stage_1(anchorage_df, wallets_df):
             'Value (USD)': 'sum'
         }).reset_index()
         
+        # Convert negative values to positive (for outflows)
+        grouped['Asset Quantity (Before Fee)'] = grouped['Asset Quantity (Before Fee)'].abs()
+        grouped['Value (USD)'] = grouped['Value (USD)'].abs()
+        
         st.write(f"DEBUG: After grouping, found {len(grouped)} unique date/address combinations")
         
         grouped['Wallet Name'] = grouped['Source Addresses'].copy()
