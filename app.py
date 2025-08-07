@@ -201,12 +201,17 @@ def process_stage_1(anchorage_df, wallets_df):
 def get_withdrawal_account_id(wallet_name, wallets_df, error_log):
     """Get account ID for withdrawal row"""
     try:
-        # Remove "Aptos" prefix if present
-        search_name = wallet_name.replace("Aptos ", "") if wallet_name.startswith("Aptos ") else wallet_name
-        search_name = search_name + " vesting tokens"
+       # Try multiple search patterns for vesting tokens wallet
+        search_patterns = [
+            wallet_name + " vesting tokens",  # Try with full name first
+            wallet_name.replace("Aptos ", "") + " vesting tokens" if wallet_name.startswith("Aptos ") else wallet_name + " vesting tokens"  # Try without "Aptos"
+        ]
         
-        # Search for matching name in wallets list
-        match = wallets_df[wallets_df['Name'] == search_name]
+        match = pd.DataFrame()  # Start with empty match
+        for search_name in search_patterns:
+            match = wallets_df[wallets_df['Name'] == search_name]
+            if not match.empty:
+                break  # Found a match, stop searching
         
         if match.empty:
             error_msg = f"{wallet_name} is missing a vesting tokens wallet"
