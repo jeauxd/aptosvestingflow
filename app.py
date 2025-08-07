@@ -175,8 +175,8 @@ def process_stage_1(anchorage_df, wallets_df):
         }).reset_index()
         
         # Convert negative values to positive (for outflows)
-        grouped['Asset Quantity (Before Fee)'] = grouped['Asset Quantity (Before Fee)'].abs()
-        grouped['Value (USD)'] = grouped['Value (USD)'].abs()
+        grouped.loc[grouped['Asset Quantity (Before Fee)'] < 0, 'Asset Quantity (Before Fee)'] *= -1
+        grouped.loc[grouped['Value (USD)'] < 0, 'Value (USD)'] *= -1
         
         st.write(f"DEBUG: After grouping, found {len(grouped)} unique date/address combinations")
         
