@@ -156,7 +156,7 @@ def process_stage_1(anchorage_df, wallets_df):
         st.write(f"DEBUG: First 10 Type values: {list(anchorage_df['Type'].head(10))}")
         st.write(f"DEBUG: Unique transaction types: {sorted(anchorage_df['Type'].unique())}")
         
-       balance_adjustments = anchorage_df[anchorage_df['Type'] == 'Balance Adjustment'].copy()
+        balance_adjustments = anchorage_df[anchorage_df['Type'] == 'Balance Adjustment'].copy()
         
         if balance_adjustments.empty:
             balance_adjustments = anchorage_df[anchorage_df['Type'].str.lower() == 'balance adjustment'].copy()
