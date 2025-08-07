@@ -494,7 +494,8 @@ def process_stage_3(stage1_df, stage2_df, bitwave_df, wallets_df, vesting_pairs_
             wallet_name = row['Wallet Name']
             
             # Get deposit account ID (same logic as Stage 2 deposit)
-            account_id = get_deposit_account_id(wallet_name, wallets_df, vesting_pairs_df)
+            error_log = []  # Create error log for Stage 3
+            account_id = get_deposit_account_id(wallet_name, wallets_df, vesting_pairs_df, error_log)
             if not account_id:
                 continue
             
