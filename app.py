@@ -250,7 +250,6 @@ def get_deposit_account_id(wallet_name, wallets_df, vesting_pairs_df, error_log)
         
         if beneficiary_match.empty:
             error_msg = f"No Beneficiary Wallet Match in the Wallets list for {beneficiary_wallet}"
-            st.error(error_msg)
             error_log.append({
                 'Wallet Name': wallet_name,
                 'Error Type': 'No Beneficiary Wallet Match',
