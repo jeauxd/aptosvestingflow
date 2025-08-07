@@ -169,20 +169,20 @@ def process_stage_1(anchorage_df, wallets_df):
         balance_adjustments['End Time'] = pd.to_datetime(balance_adjustments['End Time'])
         balance_adjustments['Date'] = balance_adjustments['End Time'].dt.date
         
-        grouped = balance_adjustments.groupby(['Date', 'Destination Address']).agg({
+        grouped = balance_adjustments.groupby(['Date', 'Source Address']).agg({
             'Asset Quantity (Before Fee)': 'sum',
             'Value (USD)': 'sum'
         }).reset_index()
         
         st.write(f"DEBUG: After grouping, found {len(grouped)} unique date/address combinations")
         
-        grouped['Wallet Name'] = grouped['Destination Address'].copy()
+        grouped['Wallet Name'] = grouped['Source Address'].copy()
         
         if not wallets_df.empty and 'Addresses' in wallets_df.columns and 'Name' in wallets_df.columns:
             wallets_lookup = dict(zip(wallets_df['Addresses'], wallets_df['Name']))
             for addr, name in wallets_lookup.items():
                 if pd.notna(addr):
-                    grouped.loc[grouped['Destination Address'] == addr, 'Wallet Name'] = name
+                    grouped.loc[grouped['Source Address'] == addr, 'Wallet Name'] = name
         
         result = grouped[['Date', 'Wallet Name', 'Asset Quantity (Before Fee)', 'Value (USD)']]
         result = result.sort_values(['Date', 'Wallet Name'])
