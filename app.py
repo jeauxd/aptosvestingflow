@@ -645,30 +645,7 @@ def main():
         else:
             st.warning("⚠️ No wallets list loaded")
         
-        uploaded_wallets = st.file_uploader("Update Wallets List", type=['csv'], key='wallets_upload')
-        if uploaded_wallets:
-            wallets_df = load_csv_file(uploaded_wallets)
-            if wallets_df is not None and validate_wallets_list(wallets_df):
-                st.session_state['wallets_list'] = wallets_df
-                st.success("Wallets list updated successfully!")
-                st.rerun()
-        
         st.markdown("---")
-        
-        # Vesting Pairs Management
-        st.subheader("Vesting Wallet Pairs")
-        if not st.session_state['vesting_pairs'].empty:
-            st.success(f"✅ Loaded ({len(st.session_state['vesting_pairs'])} pairs)")
-        else:
-            st.warning("⚠️ No vesting pairs loaded")
-        
-        uploaded_pairs = st.file_uploader("Update Vesting Wallet Pairs", type=['csv'], key='pairs_upload')
-        if uploaded_pairs:
-            pairs_df = load_csv_file(uploaded_pairs)
-            if pairs_df is not None and validate_vesting_pairs(pairs_df):
-                st.session_state['vesting_pairs'] = pairs_df
-                st.success("Vesting wallet pairs updated successfully!")
-                st.rerun()
     
     # Main content area with tabs
     tab1, tab2, tab3, tab4 = st.tabs([
