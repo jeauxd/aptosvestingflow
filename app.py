@@ -198,7 +198,7 @@ def process_stage_1(anchorage_df, wallets_df):
         st.error(f"Error in Stage 1 processing: {str(e)}")
         return pd.DataFrame()
 
-def get_withdrawal_account_id(wallet_name, wallets_df):
+def get_withdrawal_account_id(wallet_name, wallets_df, error_log):
     """Get account ID for withdrawal row"""
     try:
         # Remove "Aptos" prefix if present
@@ -209,23 +209,41 @@ def get_withdrawal_account_id(wallet_name, wallets_df):
         match = wallets_df[wallets_df['Name'] == search_name]
         
         if match.empty:
-            st.error(f"{wallet_name} is missing a vesting tokens wallet")
+            error_msg = f"{wallet_name} is missing a vesting tokens wallet"
+            st.error(error_msg)
+            error_log.append({
+                'Wallet Name': wallet_name,
+                'Error Type': 'Missing Vesting Tokens Wallet',
+                'Error Message': error_msg
+            })
             return None
         
         return match.iloc[0]['ID']
         
     except Exception as e:
-        st.error(f"Error finding withdrawal account ID for {wallet_name}: {str(e)}")
+        error_msg = f"Error finding withdrawal account ID for {wallet_name}: {str(e)}"
+        st.error(error_msg)
+        error_log.append({
+            'Wallet Name': wallet_name,
+            'Error Type': 'Withdrawal Account ID Error',
+            'Error Message': error_msg
+        })
         return None
 
-def get_deposit_account_id(wallet_name, wallets_df, vesting_pairs_df):
+def get_deposit_account_id(wallet_name, wallets_df, vesting_pairs_df, error_log):
     """Get account ID for deposit row"""
     try:
         # Find originating wallet in vesting pairs
         originating_match = vesting_pairs_df[vesting_pairs_df['Originating Wallet'] == wallet_name]
         
         if originating_match.empty:
-            st.error(f"No Originating Wallet Match in the Vesting Wallet Pairs table for {wallet_name}")
+            error_msg = f"No Originating Wallet Match in the Vesting Wallet Pairs table for {wallet_name}"
+            st.error(error_msg)
+            error_log.append({
+                'Wallet Name': wallet_name,
+                'Error Type': 'No Originating Wallet Match',
+                'Error Message': error_msg
+            })
             return None
         
         beneficiary_wallet = originating_match.iloc[0]['Beneficiary Wallet']
@@ -234,13 +252,26 @@ def get_deposit_account_id(wallet_name, wallets_df, vesting_pairs_df):
         beneficiary_match = wallets_df[wallets_df['Name'] == beneficiary_wallet]
         
         if beneficiary_match.empty:
-            st.error(f"No Beneficiary Wallet Match in the Wallets list for {beneficiary_wallet}")
+            error_msg = f"No Beneficiary Wallet Match in the Wallets list for {beneficiary_wallet}"
+            st.error(error_msg)
+            error_log.append({
+                'Wallet Name': wallet_name,
+                'Error Type': 'No Beneficiary Wallet Match',
+                'Error Message': error_msg,
+                'Beneficiary Wallet': beneficiary_wallet
+            })
             return None
         
         return beneficiary_match.iloc[0]['ID']
         
     except Exception as e:
-        st.error(f"Error finding deposit account ID for {wallet_name}: {str(e)}")
+        error_msg = f"Error finding deposit account ID for {wallet_name}: {str(e)}"
+        st.error(error_msg)
+        error_log.append({
+            'Wallet Name': wallet_name,
+            'Error Type': 'Deposit Account ID Error',
+            'Error Message': error_msg
+        })
         return None
 
 def process_stage_2(stage1_df, wallets_df, vesting_pairs_df):
@@ -251,6 +282,7 @@ def process_stage_2(stage1_df, wallets_df, vesting_pairs_df):
             return pd.DataFrame()
         
         output_rows = []
+        error_log = []
         
         for _, row in stage1_df.iterrows():
             date = row['Date']
@@ -266,7 +298,7 @@ def process_stage_2(stage1_df, wallets_df, vesting_pairs_df):
             deposit_id = id_generator.get_next_id()
             
             # Create withdrawal row
-            withdrawal_account_id = get_withdrawal_account_id(wallet_name, wallets_df)
+            withdrawal_account_id = get_withdrawal_account_id(wallet_name, wallets_df, error_log)
             if withdrawal_account_id:
                 blockchain_id = f"{withdrawal_account_id}.vestingdistribute.{date.strftime('%m%d%y')}"
                 
@@ -296,7 +328,7 @@ def process_stage_2(stage1_df, wallets_df, vesting_pairs_df):
                 output_rows.append(withdrawal_row)
             
             # Create deposit row
-            deposit_account_id = get_deposit_account_id(wallet_name, wallets_df, vesting_pairs_df)
+            deposit_account_id = get_deposit_account_id(wallet_name, wallets_df, vesting_pairs_df, error_log)
             if deposit_account_id:
                 blockchain_id = f"{deposit_account_id}.vestingdistribute.{date.strftime('%m%d%y')}"
                 
@@ -324,6 +356,10 @@ def process_stage_2(stage1_df, wallets_df, vesting_pairs_df):
                     'groupId': ''
                 }
                 output_rows.append(deposit_row)
+        
+        # Store errors in session state for download
+        if error_log:
+            st.session_state['stage2_errors'] = pd.DataFrame(error_log)
         
         return pd.DataFrame(output_rows)
         
@@ -715,6 +751,17 @@ def main():
                 st.session_state['stage2_data'],
                 f"stage2_vesting_transfers_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 "📥 Download Stage 2 CSV"
+            )
+        
+        # Error log download
+        if 'stage2_errors' in st.session_state and not st.session_state['stage2_errors'].empty:
+            st.subheader("⚠️ Stage 2 Errors")
+            st.error(f"Found {len(st.session_state['stage2_errors'])} errors during processing")
+            st.dataframe(st.session_state['stage2_errors'], use_container_width=True)
+            create_download_link(
+                st.session_state['stage2_errors'],
+                f"stage2_errors_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                "📥 Download Stage 2 Errors CSV"
             )
     
     # Stage 3 Tab  
