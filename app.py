@@ -129,104 +129,17 @@ def validate_bitwave_file(df):
     
     return True
 
-def process_stage_1(anchorage_df, wallets_df):
-    """Stage 1: Vesting Outflows per Anchorage File"""
-    try:
-        st.write(f"Debug: Total rows in Anchorage file: {len(anchorage_df)}")
-        st.write(f"Debug: First 10 Type values: {list(anchorage_df['Type'].head(10))}")
-        st.write(f"Debug: Unique transaction types: {sorted(anchorage_df['Type'].unique())}")
-        
-        balance_adjustments = anchorage_df[anchorage_df['Type'] == 'Balance Adjustment'].copy()
-        st.write(f"Debug: Found {len(balance_adjustments)} Balance Adjustment transactions")
-        
-        if balance_adjustments.empty:
-            balance_adjustments = anchorage_df[anchorage_df['Type'].str.lower() == 'balance adjustment'].copy()
-            st.write(f"Debug: Found {len(balance_adjustments)} balance adjustment transactions (case insensitive)")
-        
-        if balance_adjustments.empty:
-            st.warning("No Balance Adjustment transactions found in the data.")
-            return pd.DataFrame()
-        
-        balance_adjustments['End Time'] = pd.to_datetime(balance_adjustments['End Time'])
-        balance_adjustments['Date'] = balance_adjustments['End Time'].dt.date
-        
-        grouped = balance_adjustments.groupby(['Date', 'Destination Address']).agg({
-            'Asset Quantity (Before Fee)': 'sum',
-            'Value (USD)': 'sum'
-        }).reset_index()
-        
-        st.write(f"Debug: After grouping, found {len(grouped)} unique date/address combinations")
-        
-        grouped['Wallet Name'] = grouped['Destination Address'].copy()
-        
-        if not wallets_df.empty and 'Addresses' in wallets_df.columns and 'Name' in wallets_df.columns:
-            wallets_lookup = dict(zip(wallets_df['Addresses'], wallets_df['Name']))
-            for addr, name in wallets_lookup.items():
-                if pd.notna(addr):
-                    grouped.loc[grouped['Destination Address'] == addr, 'Wallet Name'] = name
-        
-        result = grouped[['Date', 'Wallet Name', 'Asset Quantity (Before Fee)', 'Value (USD)']]
-        result = result.sort_values(['Date', 'Wallet Name'])
-        
-        st.write(f"Debug: Final result has {len(result)} rows")
-        return result
-        
-    except Exception as e:
-        st.error(f"Error in Stage 1 processing: {str(e)}")
-        return pd.DataFrame()
-        
-        # Show unique transaction types
-        unique_types = anchorage_df['Type'].unique()
-        st.write(f"Debug: Unique transaction types found: {list(unique_types)}")
-        
-        # Filter for Balance Adjustment transactions
-        balance_adjustments = anchorage_df[anchorage_df['Type'] == 'Balance Adjustment'].copy()
-        st.write(f"Debug: Found {len(balance_adjustments)} Balance Adjustment transactions")
-        
-        if balance_adjustments.empty:
-            # Try case-insensitive match
-            balance_adjustments = anchorage_df[anchorage_df['Type'].str.lower() == 'balance adjustment'].copy()
-            st.write(f"Debug: Found {len(balance_adjustments)} balance adjustment transactions (case insensitive)")
-        
-        if balance_adjustments.empty:
-            st.warning("No Balance Adjustment transactions found in the data.")
-            return pd.DataFrame()
-        
-        # Parse dates
-        balance_adjustments['End Time'] = pd.to_datetime(balance_adjustments['End Time'])
-        balance_adjustments['Date'] = balance_adjustments['End Time'].dt.date
-        
-        # Group by date and destination address
-        grouped = balance_adjustments.groupby(['Date', 'Destination Address']).agg({
-            'Asset Quantity (Before Fee)': 'sum',
-            'Value (USD)': 'sum'
-        }).reset_index()
-        
-        st.write(f"Debug: After grouping, found {len(grouped)} unique date/address combinations")
-        
-        # Replace destination addresses with wallet names where possible
-        grouped['Wallet Name'] = grouped['Destination Address'].copy()
-        
-        # Create wallets lookup dictionary (Address -> Name)
-        if not wallets_df.empty and 'Addresses' in wallets_df.columns and 'Name' in wallets_df.columns:
-            wallets_lookup = dict(zip(wallets_df['Addresses'], wallets_df['Name']))
-            
-            # Replace addresses with wallet names
-            for addr, name in wallets_lookup.items():
-                if pd.notna(addr):
-                    grouped.loc[grouped['Destination Address'] == addr, 'Wallet Name'] = name
-        
-        # Reorder columns
-        result = grouped[['Date', 'Wallet Name', 'Asset Quantity (Before Fee)', 'Value (USD)']]
-        result = result.sort_values(['Date', 'Wallet Name'])
-        
-        st.write(f"Debug: Final result has {len(result)} rows")
-        
-        return result
-        
-    except Exception as e:
-        st.error(f"Error in Stage 1 processing: {str(e)}")
-        return pd.DataFrame()
+def create_download_link(df, filename, link_text="Download CSV"):
+    """Create a download link for a DataFrame"""
+    csv = df.to_csv(index=False)
+    csv_bytes = csv.encode('utf-8')
+    
+    return st.download_button(
+        label=link_text,
+        data=csv_bytes,
+        file_name=filename,
+        mime='text/csv'
+    )
 
 # ============================================================================
 # STAGE PROCESSING FUNCTIONS
@@ -235,39 +148,43 @@ def process_stage_1(anchorage_df, wallets_df):
 def process_stage_1(anchorage_df, wallets_df):
     """Stage 1: Vesting Outflows per Anchorage File"""
     try:
-        # Filter for Balance Adjustment transactions
+        st.write(f"DEBUG: Total rows in Anchorage file: {len(anchorage_df)}")
+        st.write(f"DEBUG: First 10 Type values: {list(anchorage_df['Type'].head(10))}")
+        st.write(f"DEBUG: Unique transaction types: {sorted(anchorage_df['Type'].unique())}")
+        
         balance_adjustments = anchorage_df[anchorage_df['Type'] == 'Balance Adjustment'].copy()
+        st.write(f"DEBUG: Found {len(balance_adjustments)} Balance Adjustment transactions")
+        
+        if balance_adjustments.empty:
+            balance_adjustments = anchorage_df[anchorage_df['Type'].str.lower() == 'balance adjustment'].copy()
+            st.write(f"DEBUG: Found {len(balance_adjustments)} balance adjustment transactions (case insensitive)")
         
         if balance_adjustments.empty:
             st.warning("No Balance Adjustment transactions found in the data.")
             return pd.DataFrame()
         
-        # Parse dates
         balance_adjustments['End Time'] = pd.to_datetime(balance_adjustments['End Time'])
         balance_adjustments['Date'] = balance_adjustments['End Time'].dt.date
         
-        # Group by date and destination address
         grouped = balance_adjustments.groupby(['Date', 'Destination Address']).agg({
             'Asset Quantity (Before Fee)': 'sum',
             'Value (USD)': 'sum'
         }).reset_index()
         
-        # Replace destination addresses with wallet names where possible
+        st.write(f"DEBUG: After grouping, found {len(grouped)} unique date/address combinations")
+        
         grouped['Wallet Name'] = grouped['Destination Address'].copy()
         
-        # Create wallets lookup dictionary (Address -> Name)
         if not wallets_df.empty and 'Addresses' in wallets_df.columns and 'Name' in wallets_df.columns:
             wallets_lookup = dict(zip(wallets_df['Addresses'], wallets_df['Name']))
-            
-            # Replace addresses with wallet names
             for addr, name in wallets_lookup.items():
                 if pd.notna(addr):
                     grouped.loc[grouped['Destination Address'] == addr, 'Wallet Name'] = name
         
-        # Reorder columns
         result = grouped[['Date', 'Wallet Name', 'Asset Quantity (Before Fee)', 'Value (USD)']]
         result = result.sort_values(['Date', 'Wallet Name'])
         
+        st.write(f"DEBUG: Final result has {len(result)} rows")
         return result
         
     except Exception as e:
@@ -430,8 +347,8 @@ def get_stage2_deposit_amount(stage2_df, account_id, date):
     except Exception as e:
         st.error(f"Error getting Stage 2 deposit amount: {str(e)}")
         return None
-
-def calculate_bitwave_amount(bitwave_df, account_id, date, stage2_amount):
+    
+    def calculate_bitwave_amount(bitwave_df, account_id, date, stage2_amount):
     """Calculate amount from Bitwave data based on criteria"""
     try:
         # Filter Bitwave data for matching wallet ID
@@ -703,11 +620,17 @@ def main():
             if anchorage_df is not None and validate_anchorage_file(anchorage_df):
                 if st.button("Process Stage 1", key='process_stage1'):
                     with st.spinner("Processing Stage 1..."):
+                        st.write("DEBUG: Button clicked, starting processing...")
+                        st.write(f"DEBUG: Anchorage file has {len(anchorage_df)} rows")
+                        st.write(f"DEBUG: Wallets list has {len(st.session_state['wallets_list'])} rows")
+                        
                         stage1_result = process_stage_1(anchorage_df, st.session_state['wallets_list'])
+                        
+                        st.write(f"DEBUG: Function returned {len(stage1_result)} rows")
                         st.session_state['stage1_data'] = stage1_result
                         st.success("Stage 1 processing completed!")
         
-       # Display results - FIXED VERSION
+        # Display results
         if 'stage1_data' in st.session_state and not st.session_state['stage1_data'].empty:
             st.subheader("📋 Stage 1 Results")
             st.dataframe(st.session_state['stage1_data'], use_container_width=True)
@@ -719,7 +642,7 @@ def main():
                 "📥 Download Stage 1 CSV"
             )
         
-        # Debug info - remove this later
+        # Debug info
         if 'stage1_data' in st.session_state:
             st.write(f"Debug: Stage 1 data has {len(st.session_state['stage1_data'])} rows")
     
@@ -727,7 +650,7 @@ def main():
     with tab2:
         st.header("💸 Stage 2 - Creating Vesting Transfers to Beneficiary Wallets")
         
-        if st.session_state['stage1_data'].empty:
+        if 'stage1_data' not in st.session_state or st.session_state['stage1_data'].empty:
             st.warning("⚠️ Please complete Stage 1 first")
         elif st.session_state['wallets_list'].empty:
             st.warning("⚠️ Please upload Wallets List")
@@ -767,7 +690,7 @@ def main():
         # File upload for Bitwave
         uploaded_bitwave = st.file_uploader("Upload Bitwave Transactions Export", type=['csv'], key='bitwave_upload')
         
-        if st.session_state['stage1_data'].empty:
+        if 'stage1_data' not in st.session_state or st.session_state['stage1_data'].empty:
             st.warning("⚠️ Please complete Stage 1 first")
         elif st.session_state['stage2_data'].empty:
             st.warning("⚠️ Please complete Stage 2 first")
