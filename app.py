@@ -407,6 +407,11 @@ def calculate_bitwave_amount(bitwave_df, account_id, date, stage2_amount):
         
         # Filter for date range (after base date, within 10 days)
         wallet_transactions['dateTime'] = pd.to_datetime(wallet_transactions['dateTime'])
+        
+        # Convert to timezone-naive for comparison
+        if wallet_transactions['dateTime'].dt.tz is not None:
+            wallet_transactions['dateTime'] = wallet_transactions['dateTime'].dt.tz_convert(None)
+        
         date_filtered = wallet_transactions[
             (wallet_transactions['dateTime'] > base_date) & 
             (wallet_transactions['dateTime'] <= end_date)
