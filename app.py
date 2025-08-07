@@ -348,7 +348,7 @@ def get_stage2_deposit_amount(stage2_df, account_id, date):
         st.error(f"Error getting Stage 2 deposit amount: {str(e)}")
         return None
     
-    def calculate_bitwave_amount(bitwave_df, account_id, date, stage2_amount):
+def calculate_bitwave_amount(bitwave_df, account_id, date, stage2_amount):
     """Calculate amount from Bitwave data based on criteria"""
     try:
         # Filter Bitwave data for matching wallet ID
@@ -370,6 +370,33 @@ def get_stage2_deposit_amount(stage2_df, account_id, date):
         
         if date_filtered.empty:
             return None
+        
+        # Filter for amounts greater than Stage 2 deposit amount
+        amount_filtered = date_filtered[date_filtered['amount'] > stage2_amount]
+        
+        if amount_filtered.empty:
+            return None
+        
+        # Use the first matching transaction
+        bitwave_amount = amount_filtered.iloc[0]['amount']
+        calculated_amount = bitwave_amount - stage2_amount
+        
+        # Store the matched bitwave transaction for Stage 4
+        if 'stage3_matched_transactions' not in st.session_state:
+            st.session_state['stage3_matched_transactions'] = []
+        
+        st.session_state['stage3_matched_transactions'].append({
+            'id': amount_filtered.iloc[0]['id'],
+            'bitwave_amount': bitwave_amount,
+            'stage2_amount': stage2_amount,
+            'calculated_amount': calculated_amount
+        })
+        
+        return calculated_amount
+        
+    except Exception as e:
+        st.error(f"Error calculating Bitwave amount: {str(e)}")
+        return None
         
         # Filter for amounts greater than Stage 2 deposit amount
         amount_filtered = date_filtered[date_filtered['amount'] > stage2_amount]
