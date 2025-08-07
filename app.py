@@ -210,7 +210,6 @@ def get_withdrawal_account_id(wallet_name, wallets_df, error_log):
         
         if match.empty:
             error_msg = f"{wallet_name} is missing a vesting tokens wallet"
-            st.error(error_msg)
             error_log.append({
                 'Wallet Name': wallet_name,
                 'Error Type': 'Missing Vesting Tokens Wallet',
@@ -222,7 +221,6 @@ def get_withdrawal_account_id(wallet_name, wallets_df, error_log):
         
     except Exception as e:
         error_msg = f"Error finding withdrawal account ID for {wallet_name}: {str(e)}"
-        st.error(error_msg)
         error_log.append({
             'Wallet Name': wallet_name,
             'Error Type': 'Withdrawal Account ID Error',
@@ -238,7 +236,6 @@ def get_deposit_account_id(wallet_name, wallets_df, vesting_pairs_df, error_log)
         
         if originating_match.empty:
             error_msg = f"No Originating Wallet Match in the Vesting Wallet Pairs table for {wallet_name}"
-            st.error(error_msg)
             error_log.append({
                 'Wallet Name': wallet_name,
                 'Error Type': 'No Originating Wallet Match',
