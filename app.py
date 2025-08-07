@@ -149,11 +149,14 @@ def process_stage_1(anchorage_df, wallets_df):
     """Stage 1: Vesting Outflows per Anchorage File"""
     try:
         st.write(f"DEBUG: Total rows in Anchorage file: {len(anchorage_df)}")
+        
+        # Handle null values in Type column FIRST
+        anchorage_df['Type'] = anchorage_df['Type'].fillna('')
+        
         st.write(f"DEBUG: First 10 Type values: {list(anchorage_df['Type'].head(10))}")
         st.write(f"DEBUG: Unique transaction types: {sorted(anchorage_df['Type'].unique())}")
         
-        balance_adjustments = anchorage_df[anchorage_df['Type'] == 'Balance Adjustment'].copy()
-        st.write(f"DEBUG: Found {len(balance_adjustments)} Balance Adjustment transactions")
+       balance_adjustments = anchorage_df[anchorage_df['Type'] == 'Balance Adjustment'].copy()
         
         if balance_adjustments.empty:
             balance_adjustments = anchorage_df[anchorage_df['Type'].str.lower() == 'balance adjustment'].copy()
