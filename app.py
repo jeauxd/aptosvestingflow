@@ -395,8 +395,11 @@ def get_stage2_deposit_amount(stage2_df, account_id, date):
 def calculate_bitwave_amount(bitwave_df, account_id, date, stage2_amount):
     """Calculate amount from Bitwave data based on criteria"""
     try:
+        st.write(f"DEBUG BITWAVE: Looking for account_id={account_id}, date={date}, stage2_amount={stage2_amount}")
+        
         # Filter Bitwave data for matching wallet ID
         wallet_transactions = bitwave_df[bitwave_df['walletId'] == account_id]
+        st.write(f"DEBUG BITWAVE: Found {len(wallet_transactions)} transactions for wallet {account_id}")
         
         if wallet_transactions.empty:
             return None
@@ -419,33 +422,6 @@ def calculate_bitwave_amount(bitwave_df, account_id, date, stage2_amount):
         
         if date_filtered.empty:
             return None
-        
-        # Filter for amounts greater than Stage 2 deposit amount
-        amount_filtered = date_filtered[date_filtered['amount'] > stage2_amount]
-        
-        if amount_filtered.empty:
-            return None
-        
-        # Use the first matching transaction
-        bitwave_amount = amount_filtered.iloc[0]['amount']
-        calculated_amount = bitwave_amount - stage2_amount
-        
-        # Store the matched bitwave transaction for Stage 4
-        if 'stage3_matched_transactions' not in st.session_state:
-            st.session_state['stage3_matched_transactions'] = []
-        
-        st.session_state['stage3_matched_transactions'].append({
-            'id': amount_filtered.iloc[0]['id'],
-            'bitwave_amount': bitwave_amount,
-            'stage2_amount': stage2_amount,
-            'calculated_amount': calculated_amount
-        })
-        
-        return calculated_amount
-        
-    except Exception as e:
-        st.error(f"Error calculating Bitwave amount: {str(e)}")
-        return None
         
         # Filter for amounts greater than Stage 2 deposit amount
         amount_filtered = date_filtered[date_filtered['amount'] > stage2_amount]
@@ -502,18 +478,14 @@ def process_stage_3(stage1_df, stage2_df, bitwave_df, wallets_df, vesting_pairs_
             date = row['Date']
             wallet_name = row['Wallet Name']
             
-            st.write(f"DEBUG: Processing wallet '{wallet_name}' for date {date}")
-            
             # Get deposit account ID (same logic as Stage 2 deposit)
             error_log = []
             account_id = get_deposit_account_id(wallet_name, wallets_df, vesting_pairs_df, error_log)
-            st.write(f"DEBUG: Account ID for {wallet_name}: {account_id}")
             if not account_id:
                 continue
             
             # Find corresponding Stage 2 deposit amount
             stage2_deposit_amount = get_stage2_deposit_amount(stage2_df, account_id, date)
-            st.write(f"DEBUG: Stage 2 amount for {account_id}/{date}: {stage2_deposit_amount}")
             if stage2_deposit_amount is None:
                 continue
             
