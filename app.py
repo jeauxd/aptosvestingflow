@@ -487,6 +487,10 @@ def get_wallet_name_from_id(account_id, wallets_df):
 def process_stage_3(stage1_df, stage2_df, bitwave_df, wallets_df, vesting_pairs_df):
     """Stage 3: Vesting Staking Rewards Import"""
     try:
+        st.write(f"DEBUG: Stage 1 has {len(stage1_df)} rows")
+        st.write(f"DEBUG: Stage 2 has {len(stage2_df)} rows") 
+        st.write(f"DEBUG: Bitwave has {len(bitwave_df)} rows")
+        
         if stage1_df.empty:
             st.error("No Stage 1 data available for Stage 3 processing")
             return pd.DataFrame(), pd.DataFrame()
@@ -560,6 +564,9 @@ def process_stage_3(stage1_df, stage2_df, bitwave_df, wallets_df, vesting_pairs_
                 'Amount': calculated_amount
             }
             display_rows.append(display_row)
+        
+        st.write(f"DEBUG: Generated {len(output_rows)} output rows")
+        st.write(f"DEBUG: Generated {len(display_rows)} display rows")
         
         return pd.DataFrame(output_rows), pd.DataFrame(display_rows)
         
