@@ -404,21 +404,22 @@ def calculate_bitwave_amount(bitwave_df, account_id, date, stage2_amount):
         if wallet_transactions.empty:
             return None
         
-        # Convert date to datetime for comparison
-        base_date = datetime.combine(date, datetime.min.time())
-        end_date = base_date + timedelta(days=20)
-        
-        # Filter for date range (after base date, within 20 days)
-        wallet_transactions['dateTime'] = pd.to_datetime(wallet_transactions['dateTime'])
-        
-        # Convert to timezone-naive for comparison
-        if wallet_transactions['dateTime'].dt.tz is not None:
-            wallet_transactions['dateTime'] = wallet_transactions['dateTime'].dt.tz_convert(None)
-        
-        date_filtered = wallet_transactions[
-            (wallet_transactions['dateTime'] > base_date) & 
-            (wallet_transactions['dateTime'] <= end_date)
-        ]
+# Convert date to datetime for comparison
+base_date = datetime.combine(date, datetime.min.time())
+start_date = base_date - timedelta(days=20)
+end_date   = base_date + timedelta(days=20)
+
+# Filter for date range (within ±20 days of base_date)
+wallet_transactions['dateTime'] = pd.to_datetime(wallet_transactions['dateTime'])
+
+# Convert to timezone-naive for comparison
+if wallet_transactions['dateTime'].dt.tz is not None:
+    wallet_transactions['dateTime'] = wallet_transactions['dateTime'].dt.tz_convert(None)
+
+date_filtered = wallet_transactions[
+    (wallet_transactions['dateTime'] >= start_date) &
+    (wallet_transactions['dateTime'] <= end_date)
+]
         
         if date_filtered.empty:
             return None
