@@ -498,18 +498,22 @@ def process_stage_3(stage1_df, stage2_df, bitwave_df, wallets_df, vesting_pairs_
         output_rows = []
         display_rows = []
         
-        for _, row in stage1_df.iterrows():
+for _, row in stage1_df.iterrows():
             date = row['Date']
             wallet_name = row['Wallet Name']
             
+            st.write(f"DEBUG: Processing wallet '{wallet_name}' for date {date}")
+            
             # Get deposit account ID (same logic as Stage 2 deposit)
-            error_log = []  # Create error log for Stage 3
+            error_log = []
             account_id = get_deposit_account_id(wallet_name, wallets_df, vesting_pairs_df, error_log)
+            st.write(f"DEBUG: Account ID for {wallet_name}: {account_id}")
             if not account_id:
                 continue
             
             # Find corresponding Stage 2 deposit amount
             stage2_deposit_amount = get_stage2_deposit_amount(stage2_df, account_id, date)
+            st.write(f"DEBUG: Stage 2 amount for {account_id}/{date}: {stage2_deposit_amount}")
             if stage2_deposit_amount is None:
                 continue
             
