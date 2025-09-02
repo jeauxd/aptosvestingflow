@@ -498,7 +498,7 @@ def process_stage_3(stage1_df, stage2_df, bitwave_df, wallets_df, vesting_pairs_
         output_rows = []
         display_rows = []
         
-for _, row in stage1_df.iterrows():
+        for _, row in stage1_df.iterrows():
             date = row['Date']
             wallet_name = row['Wallet Name']
             
