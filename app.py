@@ -396,60 +396,63 @@ def calculate_bitwave_amount(bitwave_df, account_id, date, stage2_amount):
     """Calculate amount from Bitwave data based on criteria"""
     try:
         st.write(f"DEBUG BITWAVE: Looking for account_id={account_id}, date={date}, stage2_amount={stage2_amount}")
-        
+
         # Filter Bitwave data for matching wallet ID
-        wallet_transactions = bitwave_df[bitwave_df['walletId'] == account_id]
+        wallet_transactions = bitwave_df[bitwave_df['walletId'] == account_id].copy()
         st.write(f"DEBUG BITWAVE: Found {len(wallet_transactions)} transactions for wallet {account_id}")
-        
+
         if wallet_transactions.empty:
             return None
-        
-# Convert date to datetime for comparison
-base_date = datetime.combine(date, datetime.min.time())
-start_date = base_date - timedelta(days=20)
-end_date   = base_date + timedelta(days=20)
 
-# Filter for date range (within ±20 days of base_date)
-wallet_transactions['dateTime'] = pd.to_datetime(wallet_transactions['dateTime'])
+        # Convert date to datetime for comparison
+        base_date = datetime.combine(date, datetime.min.time())
+        start_date = base_date - timedelta(days=20)
+        end_date   = base_date + timedelta(days=20)
 
-# Convert to timezone-naive for comparison
-if wallet_transactions['dateTime'].dt.tz is not None:
-    wallet_transactions['dateTime'] = wallet_transactions['dateTime'].dt.tz_convert(None)
+        # Parse timestamps and normalize to timezone-naive
+        wallet_transactions['dateTime'] = pd.to_datetime(
+            wallet_transactions['dateTime'], errors='coerce'
+        )
 
-date_filtered = wallet_transactions[
-    (wallet_transactions['dateTime'] >= start_date) &
-    (wallet_transactions['dateTime'] <= end_date)
-]
-        
+        # If timezone-aware, drop tz info for comparison
+        if getattr(wallet_transactions['dateTime'].dt, "tz", None) is not None:
+            wallet_transactions['dateTime'] = wallet_transactions['dateTime'].dt.tz_convert(None)
+
+        # Keep rows within ±20 days of base_date (inclusive)
+        date_filtered = wallet_transactions[
+            (wallet_transactions['dateTime'] >= start_date) &
+            (wallet_transactions['dateTime'] <= end_date)
+        ]
+
         if date_filtered.empty:
             return None
-        
+
         # Filter for amounts greater than Stage 2 deposit amount
         amount_filtered = date_filtered[date_filtered['amount'] > stage2_amount]
-        
         if amount_filtered.empty:
             return None
-        
+
         # Use the first matching transaction
         bitwave_amount = amount_filtered.iloc[0]['amount']
         calculated_amount = bitwave_amount - stage2_amount
-        
+
         # Store the matched bitwave transaction for Stage 4
         if 'stage3_matched_transactions' not in st.session_state:
             st.session_state['stage3_matched_transactions'] = []
-        
+
         st.session_state['stage3_matched_transactions'].append({
             'id': amount_filtered.iloc[0]['id'],
             'bitwave_amount': bitwave_amount,
             'stage2_amount': stage2_amount,
             'calculated_amount': calculated_amount
         })
-        
+
         return calculated_amount
-        
+
     except Exception as e:
         st.error(f"Error calculating Bitwave amount: {str(e)}")
         return None
+
 
 def get_wallet_name_from_id(account_id, wallets_df):
     """Get wallet name from account ID"""
